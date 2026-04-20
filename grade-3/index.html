@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Oral Test Activity</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600&display=swap');
+
+        :root {
+            --p1-color: #3498db;
+            --p2-color: #e74c3c;
+            --next-btn: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            font-family: 'Fredoka', sans-serif;
+            overflow: hidden;
+        }
+
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background-size: cover;
+            background-position: center;
+        }
+
+        .active { display: flex; }
+
+        #home-page { background-image: url('home_page.png'); background-color: #fdf9f2; }
+        #game-page { background-image: url('game_page.png'); background-color: #ffffff; }
+        #result-page { background-image: url('result_page.png'); background-color: #fff9c4; }
+
+        .split-container {
+            display: flex;
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        .side {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+            border: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .btn {
+            font-family: 'Fredoka', sans-serif;
+            padding: 20px 40px;
+            font-size: 24px;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 15px;
+            color: white;
+            background: linear-gradient(to bottom, #ff9a9e, #fecfef);
+            box-shadow: 0 6px 0 #d18285;
+            transition: transform 0.1s;
+        }
+
+        .btn:active { transform: scale(0.95) translateY(4px); box-shadow: 0 2px 0 #d18285; }
+        .btn-blue { background: linear-gradient(to bottom, #4facfe, #00f2fe); box-shadow: 0 6px 0 #3a8cc9; }
+        .btn-green { background: linear-gradient(to bottom, #66bb6a, #43a047); box-shadow: 0 6px 0 #2e7d32; }
+
+        .score-badge {
+            position: absolute;
+            top: 40px;
+            font-size: 28px;
+            background: white;
+            padding: 10px 25px;
+            border-radius: 30px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .timer-container {
+            position: absolute;
+            top: 15px;
+            width: 40%;
+            height: 12px;
+            background: #eee;
+            border-radius: 10px;
+            z-index: 100;
+        }
+        .timer-fill {
+            height: 100%;
+            width: 100%;
+            background: #ffcc00;
+            transition: width 1s linear;
+        }
+
+        .question-text {
+            font-size: 36px;
+            margin: 20px 0;
+            text-align: center;
+            background: rgba(255,255,255,0.9);
+            padding: 15px 40px;
+            border-radius: 20px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+        }
+
+        .options-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .img-option {
+            width: 160px;
+            height: 160px;
+            background: white;
+            border-radius: 20px;
+            padding: 10px;
+            box-shadow: 0 6px 0 #ccc;
+            cursor: pointer;
+            object-fit: contain;
+        }
+
+        .pause-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .freeze-ui {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(255,255,255,0.5);
+            display: none;
+            z-index: 50;
+        }
+
+        #shared-audio-btn {
+            position: absolute;
+            top: 80px;
+            font-size: 50px;
+            cursor: pointer;
+            background: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 5px 0 #ddd;
+            z-index: 200;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="home-page" class="screen active">
+        <div style="height: 100px;"></div>
+        <button class="btn" onclick="initGame('reading')">START READING GAME</button>
+        <button class="btn btn-blue" onclick="initGame('listening')">START LISTENING GAME</button>
+        <button class="btn btn-green" onclick="toggleModal(true)">INSTRUCTION</button>
+    </div>
+
+    <div id="modal-overlay" class="pause-overlay" onclick="toggleModal(false)">
+        <div class="side" style="background: white; border-radius: 30px; max-width: 500px; max-height: 300px; flex: none;" onclick="event.stopPropagation()">
+            <h2 style="margin-top: 0;">Instruction</h2>
+            <p id="instruction-text" style="text-align: center; padding: 0 20px;"></p>
+            <button class="btn btn-blue" onclick="toggleModal(false)">CLOSE</button>
+        </div>
+    </div>
+
+    <div id="game-page" class="screen">
+        <div class="timer-container"><div id="timer-bar" class="timer-fill"></div></div>
+        <div id="shared-audio-btn" onclick="playCurrentAudio()">🔊</div>
+        
+        <div class="split-container">
+            <div id="p1-side" class="side">
+                <div id="p1-freeze" class="freeze-ui"></div>
+                <div class="score-badge" style="color: var(--p1-color)">Group 1: <span id="p1-score">0</span></div>
+                <div id="p1-content"></div>
+            </div>
+
+            <div id="p2-side" class="side">
+                <div id="p2-freeze" class="freeze-ui"></div>
+                <div class="score-badge" style="color: var(--p2-color)">Group 2: <span id="p2-score">0</span></div>
+                <div id="p2-content"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="next-overlay" class="pause-overlay">
+        <button class="btn btn-green" style="font-size: 40px; padding: 30px 80px;" onclick="nextQuestion()">NEXT</button>
+    </div>
+
+    <div id="result-page" class="screen">
+        <h1 id="result-title" style="font-size: 60px;">WINNER!</h1>
+        <div id="final-scores" style="font-size: 32px; margin-bottom: 20px;"></div>
+        <button class="btn" onclick="location.reload()">RESTART GAME</button>
+        <button class="btn btn-blue" onclick="location.reload()">BACK TO HOME</button>
+    </div>
+
+    <script>
+        const READING_DATA = [
+            { img: '1.png', text: 'She can jump.' },
+            { img: '2.png', text: 'She can read.' },
+            { img: '3.png', text: 'He can dance.' },
+            { img: '4.png', text: 'He can sing.' },
+            { img: '5.png', text: 'He can write.' },
+            { img: '6.png', text: 'She can draw.' },
+            { img: '7.png', text: 'He can swim.' }
+        ];
+
+        const LISTENING_DATA = [
+            { img: 'jump.png', text: 'I can jump.', audio: 'I can jump' },
+            { img: 'read.png', text: 'I can read.', audio: 'I can read' },
+            { img: 'write.png', text: 'I can write.', audio: 'I can write' },
+            { img: 'sing.png', text: 'I can sing.', audio: 'I can sing' },
+            { img: 'dance.png', text: 'I can dance.', audio: 'I can dance' },
+            { img: 'draw.png', text: 'I can draw.', audio: 'I can draw' },
+            { img: 'swim.png', text: 'I can swim.', audio: 'I can swim' }
+        ];
+
+        const FILLERS = ['8.png', '9.png', '10.png', '11.png', '12.png', '13.png', '14.png'];
+
+        let currentGame = '';
+        let currentIdx = 0;
+        let p1Score = 0;
+        let p2Score = 0;
+        let timeLeft = 20;
+        let timerInterval;
+        let questions = [];
+        let p1Frozen = false;
+        let p2Frozen = false;
+
+        function toggleModal(show) {
+            const text = "Reading Game: Read the sentence. Choose the correct picture. \n Listening Game: Listen. Choose the correct picture.";
+            document.getElementById('instruction-text').innerText = text;
+            document.getElementById('modal-overlay').style.display = show ? 'flex' : 'none';
+        }
+
+        function initGame(mode) {
+            currentGame = mode;
+            currentIdx = 0;
+            p1Score = 0;
+            p2Score = 0;
+            updateScoreUI();
+            
+            let base = mode === 'reading' ? [...READING_DATA] : [...LISTENING_DATA];
+            questions = [...base, ...base].sort(() => Math.random() - 0.5).slice(0, 10);
+            
+            document.getElementById('home-page').classList.remove('active');
+            document.getElementById('game-page').classList.add('active');
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            // Check if game is over BEFORE loading/showing next question UI
+            if (currentIdx >= questions.length) {
+                showResults();
+                return;
+            }
+
+            p1Frozen = false; p2Frozen = false;
+            document.getElementById('p1-freeze').style.display = 'none';
+            document.getElementById('p2-freeze').style.display = 'none';
+            document.getElementById('next-overlay').style.display = 'none';
+
+            const q = questions[currentIdx];
+            document.getElementById('shared-audio-btn').style.display = currentGame === 'listening' ? 'flex' : 'none';
+            
+            renderSide('p1', q);
+            renderSide('p2', q);
+
+            if (currentGame === 'listening') playCurrentAudio();
+
+            timeLeft = 20;
+            startTimer();
+        }
+
+        function renderSide(pId, q) {
+            const container = document.getElementById(`${pId}-content`);
+            container.innerHTML = '';
+
+            const txt = document.createElement('div');
+            txt.className = 'question-text';
+            txt.innerText = q.text;
+            container.appendChild(txt);
+
+            const grid = document.createElement('div');
+            grid.className = 'options-container';
+
+            let options = [q.img];
+            let others = currentGame === 'reading' ? [...FILLERS] : 
+                         LISTENING_DATA.filter(d => d.img !== q.img).map(d => d.img);
+            
+            others.sort(() => Math.random() - 0.5);
+            options.push(...others.slice(0, 3));
+            options.sort(() => Math.random() - 0.5);
+
+            options.forEach(src => {
+                const img = document.createElement('img');
+                img.src = src;
+                img.className = 'img-option';
+                img.onclick = () => handleChoice(pId, src === q.img);
+                grid.appendChild(img);
+            });
+            container.appendChild(grid);
+        }
+
+        function handleChoice(pId, isCorrect) {
+            if ((pId === 'p1' && p1Frozen) || (pId === 'p2' && p2Frozen)) return;
+
+            if (isCorrect) {
+                if (pId === 'p1') p1Score++; else p2Score++;
+                updateScoreUI();
+                pauseAndShowNext();
+            } else {
+                freezeSide(pId);
+            }
+        }
+
+        function freezeSide(pId) {
+            if (pId === 'p1') p1Frozen = true; else p2Frozen = true;
+            document.getElementById(`${pId}-freeze`).style.display = 'block';
+            setTimeout(() => {
+                if (pId === 'p1') p1Frozen = false; else p2Frozen = false;
+                document.getElementById(`${pId}-freeze`).style.display = 'none';
+            }, 3000);
+        }
+
+        function pauseAndShowNext() {
+            clearInterval(timerInterval);
+            // Show the next button overlay only if we haven't finished the questions
+            if (currentIdx < questions.length) {
+                document.getElementById('next-overlay').style.display = 'flex';
+            }
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            loadQuestion();
+        }
+
+        function startTimer() {
+            clearInterval(timerInterval);
+            const bar = document.getElementById('timer-bar');
+            timerInterval = setInterval(() => {
+                timeLeft--;
+                bar.style.width = (timeLeft / 20 * 100) + '%';
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    pauseAndShowNext();
+                }
+            }, 1000);
+        }
+
+        function updateScoreUI() {
+            document.getElementById('p1-score').innerText = p1Score;
+            document.getElementById('p2-score').innerText = p2Score;
+        }
+
+        function playCurrentAudio() {
+            const utterance = new SpeechSynthesisUtterance(questions[currentIdx].audio);
+            utterance.rate = 0.45;
+            utterance.lang = 'en-US';
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function showResults() {
+            // Hide any lingering overlays
+            document.getElementById('next-overlay').style.display = 'none';
+            document.getElementById('game-page').classList.remove('active');
+            document.getElementById('result-page').classList.add('active');
+            
+            const title = document.getElementById('result-title');
+            const scores = document.getElementById('final-scores');
+            
+            scores.innerText = `Group 1: ${p1Score} | Group 2: ${p2Score}`;
+            if (p1Score > p2Score) title.innerText = "GROUP 1 WINS!";
+            else if (p2Score > p1Score) title.innerText = "GROUP 2 WINS!";
+            else title.innerText = "DRAW!";
+        }
+    </script>
+</body>
+</html>
